@@ -10,6 +10,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 const OTP_SEND_URL = 'https://myim3app.indosatooredoo.com/api/v1/otp/send/v2';
 const OTP_VALIDATE_URL = 'https://myim3app.indosatooredoo.com/api/v1/otp/validate/v2';
 
+// Token OAuth dari header yang diterima
+const OAUTH_TOKEN = '602296CAA3E13D06345EAF256E4F0FB97A3651C28D76F17939233E3B29C9B54F60383585CED3F84DC40D749D82EEFE653B242DEB5BCE290AB3298C96015C165B';
+
 // Route untuk mengirim OTP
 app.post('/send-otp', async (req, res) => {
     const { msisdn } = req.body;
@@ -22,6 +25,11 @@ app.post('/send-otp', async (req, res) => {
         const response = await axios.post(OTP_SEND_URL, {
             msisdn: msisdn,
             action: 'register'
+        }, {
+            headers: {
+                'Authorization': `Bearer ${OAUTH_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
         });
 
         res.json(response.data);
@@ -44,6 +52,11 @@ app.post('/validate-otp', async (req, res) => {
         const response = await axios.post(OTP_VALIDATE_URL, {
             transid: transid,
             otp: otp
+        }, {
+            headers: {
+                'Authorization': `Bearer ${OAUTH_TOKEN}`,
+                'Content-Type': 'application/json'
+            }
         });
 
         res.json(response.data);
