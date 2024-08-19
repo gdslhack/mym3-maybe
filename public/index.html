@@ -1,0 +1,72 @@
+<!-- public/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OTP Login</title>
+</head>
+<body>
+    <h1>Login dengan OTP</h1>
+    <form id="otp-form">
+        <label for="phone">Nomor Telepon:</label>
+        <input type="tel" id="phone" name="phone" required>
+        <button type="submit">Kirim OTP</button>
+    </form>
+
+    <form id="validate-otp-form" style="display: none;">
+        <label for="transid">TransID:</label>
+        <input type="text" id="transid" name="transid" required>
+        <label for="otp">OTP:</label>
+        <input type="text" id="otp" name="otp" required>
+        <button type="submit">Validasi OTP</button>
+    </form>
+
+    <script>
+        document.getElementById('otp-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const phone = document.getElementById('phone').value;
+
+            const response = await fetch('/send-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ msisdn: phone })
+            });
+
+            const data = await response.json();
+
+            if (data.transid) {
+                document.getElementById('otp-form').style.display = 'none';
+                document.getElementById('validate-otp-form').style.display = 'block';
+                document.getElementById('validate-otp-form').dataset.transid = data.transid;
+            } else {
+                alert('Gagal mengirim OTP');
+            }
+        });
+
+        document.getElementById('validate-otp-form').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const transid = document.getElementById('transid').value;
+            const otp = document.getElementById('otp').value;
+
+            const response = await fetch('/validate-otp', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ transid, otp })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert('OTP berhasil divalidasi!');
+            } else {
+                alert('Gagal memvalidasi OTP');
+            }
+        });
+    </script>
+</body>
+</html>
