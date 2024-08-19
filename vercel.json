@@ -8,8 +8,18 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
-      "dest": "index.js"
+      "src": "/send-otp",
+      "methods": ["POST"],
+      "dest": "/index.js"
+    },
+    {
+      "src": "/validate-otp",
+      "methods": ["POST"],
+      "dest": "/index.js"
+    },
+    {
+      "src": "/.*",
+      "dest": "/public/index.html"
     }
   ]
 }
