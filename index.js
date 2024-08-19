@@ -1,91 +1,60 @@
+const axios = require('axios');
 const express = require('express');
-const { exec } = require('child_process');
 const bodyParser = require('body-parser');
+const path = require('path');
 
 const app = express();
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
-// Halaman untuk memasukkan nomor HP
-app.get('/', (req, res) => {
-  res.send(`
-    <form action="/request-otp" method="post">
-      <label for="phone">Masukkan Nomor HP:</label>
-      <input type="text" id="phone" name="phone" required>
-      <button type="submit">Kirim OTP</button>
-    </form>
-  `);
+const OTP_SEND_URL = 'https://myim3app.indosatooredoo.com/api/v1/otp/send/v2';
+const OTP_VALIDATE_URL = 'https://myim3app.indosatooredoo.com/api/v1/otp/validate/v2';
+
+// Route untuk mengirim OTP
+app.post('/send-otp', async (req, res) => {
+    const { msisdn } = req.body;
+
+    if (!msisdn) {
+        return res.status(400).json({ error: 'Nomor telepon diperlukan' });
+    }
+
+    try {
+        const response = await axios.post(OTP_SEND_URL, {
+            msisdn: msisdn,
+            action: 'register'
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        res.status(error.response?.status || 500).json({
+            error: error.response?.data?.message || 'Terjadi kesalahan saat mengirim OTP'
+        });
+    }
 });
 
-// Mengirim OTP ke nomor HP yang dimasukkan
-app.post('/request-otp', (req, res) => {
-  const phone = req.body.phone;
-  
-  const curlCommand = `
-    curl -X POST "https://myim3app.indosatooredoo.com/api/v1/otp/send/v2" \
-    -H "Content-Type: application/json" \
-    -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36" \
-    -H "Referer: https://myim3app.indosatooredoo.com/#/login" \
-    -d '{
-      "msisdn": "${phone}"
-    }'
-  `;
+// Route untuk memvalidasi OTP
+app.post('/validate-otp', async (req, res) => {
+    const { transid, otp } = req.body;
 
-  exec(curlCommand, (error, stdout, stderr) => {
-    if (error) {
-      res.send(`Error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      res.send(`Stderr: ${stderr}`);
-      return;
+    if (!transid || !otp) {
+        return res.status(400).json({ error: 'transid dan OTP diperlukan' });
     }
 
-    res.send(`
-      <p>OTP telah dikirim ke nomor ${phone}</p>
-      <form action="/validate-otp" method="post">
-        <input type="hidden" name="phone" value="${phone}">
-        <label for="otp">Masukkan OTP:</label>
-        <input type="text" id="otp" name="otp" required>
-        <button type="submit">Validasi OTP</button>
-      </form>
-    `);
-  });
+    try {
+        const response = await axios.post(OTP_VALIDATE_URL, {
+            transid: transid,
+            otp: otp
+        });
+
+        res.json(response.data);
+    } catch (error) {
+        res.status(error.response?.status || 500).json({
+            error: error.response?.data?.message || 'Terjadi kesalahan saat memvalidasi OTP'
+        });
+    }
 });
 
-// Memvalidasi OTP yang dimasukkan
-app.post('/validate-otp', (req, res) => {
-  const phone = req.body.phone;
-  const otp = req.body.otp;
-
-  const curlCommand = `
-    curl -X POST "https://myim3app.indosatooredoo.com/api/v1/otp/validate/v2" \
-    -H "Content-Type: application/json" \
-    -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36" \
-    -H "Referer: https://myim3app.indosatooredoo.com/#/login" \
-    -d '{
-      "msisdn": "${phone}",
-      "otp": "${otp}"
-    }'
-  `;
-
-  exec(curlCommand, (error, stdout, stderr) => {
-    if (error) {
-      res.send(`Error: ${error.message}`);
-      return;
-    }
-    if (stderr) {
-      res.send(`Stderr: ${stderr}`);
-      return;
-    }
-
-    res.send(`
-      <p>OTP valid! Login berhasil.</p>
-      <pre>${stdout}</pre>
-    `);
-  });
-});
-
-// Start server
-app.listen(3000, () => {
-  console.log('Server berjalan di http://localhost:3000');
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`Server berjalan di http://localhost:${PORT}`);
 });
